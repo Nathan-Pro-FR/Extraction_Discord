@@ -1,0 +1,50 @@
+name: Export Discord vers GitHub Pages
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # Tous les jours à 20h (heure française)
+  workflow_dispatch:     # Bouton pour lancer manuellement
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Configurer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Exécuter l'exportation Discord
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+        run: python main.py
+
+      - name: Configurer GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Préparer les fichiers à publier
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'public'
+
+      - name: Déployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
